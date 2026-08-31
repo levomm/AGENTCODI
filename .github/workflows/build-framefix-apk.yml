@@ -1,0 +1,137 @@
+name: Build frame-limit test APK
+
+on:
+  push:
+    branches:
+      - build/incoming-frame-apk
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout patched source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK and build tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager 'ndk;27.2.12479018' 'build-tools;35.0.0' >/dev/null
+
+      - name: Download and verify official AGENTCODI 0.6.7 APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl --fail --location --retry 3 \
+            'https://github.com/Mcpasi/AGENTCODI/releases/download/Early_access_v0.6.7/AGENTCODI-0.6.7-arm64-v8a-release.apk' \
+            --output original.apk
+          echo '52b7127733904610888c26c9c87dcf541f4b7dbe3122f7c7cf1dd531940b5e45  original.apk' | sha256sum -c -
+
+      - name: Download apktool
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl --fail --location --retry 3 \
+            'https://github.com/iBotPeaches/Apktool/releases/download/v2.11.1/apktool_2.11.1.jar' \
+            --output apktool.jar
+
+      - name: Decode APK and patch Java-side incoming limits
+        shell: bash
+        run: |
+          set -euxo pipefail
+          java -jar apktool.jar d -f original.apk -o decoded
+
+          client_file="$(find decoded -type f -path '*/de/agentcodi/core/CodexAppServerClient.smali' -print -quit)"
+          json_file="$(find decoded -type f -path '*/de/agentcodi/core/JsonCodec.smali' -print -quit)"
+          test -n "$client_file"
+          test -n "$json_file"
+
+          sed -i 's/MAX_INCOMING_BYTES:I = 0x100000/MAX_INCOMING_BYTES:I = 0x1000000/' "$client_file"
+          sed -i 's/MAX_INPUT_CHARACTERS:I = 0x100000/MAX_INPUT_CHARACTERS:I = 0x1000000/' "$json_file"
+          sed -i 's/MAX_STRING_CHARACTERS:I = 0x80000/MAX_STRING_CHARACTERS:I = 0x1000000/' "$json_file"
+
+          grep -q 'MAX_INCOMING_BYTES:I = 0x1000000' "$client_file"
+          grep -q 'MAX_INPUT_CHARACTERS:I = 0x1000000' "$json_file"
+          grep -q 'MAX_STRING_CHARACTERS:I = 0x1000000' "$json_file"
+
+      - name: Rebuild patched ARM64 JNI engine
+        shell: bash
+        run: |
+          set -euxo pipefail
+          ndk="$ANDROID_HOME/ndk/27.2.12479018"
+          toolchain="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          cxx="$toolchain/aarch64-linux-android29-clang++"
+          strip="$toolchain/llvm-strip"
+          src='modules/native-engine/src/main/cpp'
+
+          "$cxx" -shared -fPIC -std=c++17 -O2 -Wall -Wextra -Werror -pthread \
+            -fvisibility=hidden -I"$src" \
+            "$src/agentcodi_engine.cpp" \
+            "$src/app_server_process.cpp" \
+            "$src/png_validator.cpp" \
+            "$src/sha256.cpp" \
+            "$src/workspace_directory_reader.cpp" \
+            "$src/workspace_file_reader.cpp" \
+            "$src/workspace_import_installer.cpp" \
+            "$src/jni_bridge.cpp" \
+            -Wl,-soname,libagentcodi.so -lz -llog \
+            -o decoded/lib/arm64-v8a/libagentcodi.so
+          "$strip" --strip-unneeded decoded/lib/arm64-v8a/libagentcodi.so
+
+          file decoded/lib/arm64-v8a/libagentcodi.so
+          strings decoded/lib/arm64-v8a/libagentcodi.so | grep -F 'Incoming app-server byte limit is invalid'
+
+      - name: Rebuild APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          java -jar apktool.jar b decoded -o unsigned.apk
+
+      - name: Sign APK with disposable test key
+        shell: bash
+        run: |
+          set -euxo pipefail
+          build_tools="$ANDROID_HOME/build-tools/35.0.0"
+          keytool -genkeypair -noprompt \
+            -keystore framefix-debug.keystore \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname 'CN=AGENTCODI Framefix Test,O=levomm,C=EE'
+
+          "$build_tools/zipalign" -p -f 4 unsigned.apk aligned.apk
+          "$build_tools/apksigner" sign \
+            --ks framefix-debug.keystore \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out AGENTCODI-0.6.7-framefix-arm64-v8a.apk \
+            aligned.apk
+          "$build_tools/apksigner" verify --verbose --print-certs AGENTCODI-0.6.7-framefix-arm64-v8a.apk
+          sha256sum AGENTCODI-0.6.7-framefix-arm64-v8a.apk > AGENTCODI-0.6.7-framefix-arm64-v8a.apk.sha256
+
+      - name: Upload patched APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AGENTCODI-0.6.7-framefix-arm64-v8a
+          path: |
+            AGENTCODI-0.6.7-framefix-arm64-v8a.apk
+            AGENTCODI-0.6.7-framefix-arm64-v8a.apk.sha256
+          if-no-files-found: error
+          retention-days: 7
