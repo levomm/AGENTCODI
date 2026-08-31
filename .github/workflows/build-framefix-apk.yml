@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          yes | sdkmanager 'ndk;27.2.12479018' 'build-tools;35.0.0' >/dev/null
+          sdkmanager 'ndk;27.2.12479018' 'build-tools;35.0.0' >/dev/null
 
       - name: Download and verify official AGENTCODI 0.6.7 APK
         shell: bash
