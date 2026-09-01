@@ -34,23 +34,23 @@ final class UiTheme {
             & Configuration.UI_MODE_NIGHT_MASK;
         dark = nightMode == Configuration.UI_MODE_NIGHT_YES;
         if (dark) {
-            page = 0xFF090E1A;
-            surface = 0xFF131B2B;
-            surfaceRaised = 0xFF1A2437;
-            primary = 0xFFF4F7FB;
-            secondary = 0xFFAAB5C7;
-            accent = 0xFF2DD4BF;
-            border = 0xFF2C3A50;
-            danger = 0xFFFCA5A5;
+            page = 0xFF0B0B0A;
+            surface = 0xFF11110F;
+            surfaceRaised = 0xFF1A1917;
+            primary = 0xFFE9E6E0;
+            secondary = 0xFF77736D;
+            accent = 0xFF9A4D3C;
+            border = 0xFF2A2824;
+            danger = 0xFFC96F5E;
         } else {
-            page = 0xFFF4F6F9;
-            surface = Color.WHITE;
-            surfaceRaised = 0xFFF8FAFC;
-            primary = 0xFF111827;
-            secondary = 0xFF647084;
-            accent = 0xFF0F766E;
-            border = 0xFFDCE2EA;
-            danger = 0xFFB91C1C;
+            page = 0xFFF4F1EC;
+            surface = 0xFFFBF9F5;
+            surfaceRaised = 0xFFF0ECE5;
+            primary = 0xFF1D1C1A;
+            secondary = 0xFF6F6A63;
+            accent = 0xFF8A4436;
+            border = 0xFFD8D2C9;
+            danger = 0xFFA83F32;
         }
     }
 
@@ -79,42 +79,42 @@ final class UiTheme {
     TextView sectionLabel(String value) {
         TextView label = text(value, 12, secondary);
         label.setTypeface(Typeface.DEFAULT_BOLD);
-        label.setLetterSpacing(0.1f);
+        label.setLetterSpacing(0.04f);
         return label;
     }
 
     TextView body(String value) {
         TextView body = text(value, 15, primary);
-        body.setLineSpacing(0.0f, 1.22f);
+        body.setLineSpacing(0.0f, 1.18f);
         return body;
     }
 
     LinearLayout card() {
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(18), dp(18), dp(18), dp(18));
-        card.setBackground(background(surface, border, 18));
+        card.setPadding(dp(16), dp(16), dp(16), dp(16));
+        card.setBackground(background(surface, border, 14));
         return card;
     }
 
     Button primaryButton(String label) {
         Button button = baseButton(label);
-        button.setTextColor(Color.WHITE);
-        button.setBackground(background(accent, Color.TRANSPARENT, 13));
+        button.setTextColor(0xFFF7F3EE);
+        button.setBackground(background(accent, Color.TRANSPARENT, 10));
         return button;
     }
 
     Button secondaryButton(String label) {
         Button button = baseButton(label);
-        button.setTextColor(dark ? 0xFF99F6E4 : accent);
-        button.setBackground(background(surfaceRaised, border, 13));
+        button.setTextColor(dark ? 0xFFB8B2AA : accent);
+        button.setBackground(background(surfaceRaised, border, 10));
         return button;
     }
 
     Button compactButton(String label) {
         Button button = secondaryButton(label);
-        button.setMinHeight(dp(42));
-        button.setMinimumHeight(dp(42));
+        button.setMinHeight(dp(40));
+        button.setMinimumHeight(dp(40));
         button.setPadding(dp(12), 0, dp(12), 0);
         button.setTextSize(14);
         return button;
@@ -126,7 +126,7 @@ final class UiTheme {
             description,
             surfaceRaised,
             border,
-            dark ? 0xFF99F6E4 : accent
+            dark ? 0xFFAAA49C : accent
         );
     }
 
@@ -136,7 +136,7 @@ final class UiTheme {
             description,
             accent,
             Color.TRANSPARENT,
-            Color.WHITE
+            0xFFF7F3EE
         );
     }
 
@@ -176,8 +176,8 @@ final class UiTheme {
         button.setTextSize(15);
         button.setAllCaps(false);
         button.setTypeface(Typeface.DEFAULT_BOLD);
-        button.setMinHeight(dp(50));
-        button.setMinimumHeight(dp(50));
+        button.setMinHeight(dp(46));
+        button.setMinimumHeight(dp(46));
         return button;
     }
 
@@ -192,9 +192,9 @@ final class UiTheme {
         button.setImageResource(iconResource);
         button.setColorFilter(iconColor);
         button.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
-        button.setPadding(dp(12), dp(12), dp(12), dp(12));
-        button.setMinimumWidth(dp(48));
-        button.setMinimumHeight(dp(48));
+        button.setPadding(dp(11), dp(11), dp(11), dp(11));
+        button.setMinimumWidth(dp(46));
+        button.setMinimumHeight(dp(46));
         button.setBackground(iconBackground(fill, stroke));
         button.setContentDescription(description);
         button.setTooltipText(description);
@@ -202,9 +202,9 @@ final class UiTheme {
     }
 
     private Drawable iconBackground(int fill, int stroke) {
-        GradientDrawable content = background(fill, stroke, 14);
-        GradientDrawable mask = background(Color.WHITE, Color.TRANSPARENT, 14);
-        int ripple = dark ? 0x33FFFFFF : 0x22000000;
+        GradientDrawable content = background(fill, stroke, 10);
+        GradientDrawable mask = background(Color.WHITE, Color.TRANSPARENT, 10);
+        int ripple = dark ? 0x22FFFFFF : 0x18000000;
         return new RippleDrawable(ColorStateList.valueOf(ripple), content, mask);
     }
 }
